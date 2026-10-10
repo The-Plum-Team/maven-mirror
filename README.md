@@ -13,7 +13,8 @@ It is published with GitHub Pages at **https://the-plum-team.github.io/maven-mir
 1. `artifacts.lock` is the reviewed list: one line per file with its sha256, the upstream it comes
    from, its license and its Maven path. It is generated from the two mods' Gradle
    dependency-verification metadata (`gradle/verification-metadata.xml` on `master`), filtered by
-   `policy.json`. Nothing outside that list is ever published.
+   `policy.json`, plus the files that a locked Gradle `.module` declares with their sha256 (see
+   "Using it from Gradle"). Nothing outside that list is ever published.
 2. The [`Publish mirror`](.github/workflows/publish.yml) workflow runs weekly, on manual dispatch
    and whenever the list or policy changes on `main`. For every locked file it tries, in order, the
    verified store restored from the Actions cache, an optional seed release, the copy already
@@ -105,15 +106,21 @@ by default; `metadataSources { gradleMetadata(); mavenPom() }` on this repositor
 ask for the `.module` directly.
 
 The fallback works per version, not per file. Once Gradle finds a version's `.module` or `.pom`
-here, it downloads that version's jars from here too and does not try the upstream for them. So a
-build that needs a file of a mirrored version that is not in the list (a classifier, sources or
-javadoc jar that no mod's verification metadata records) fails with `Could not find` instead of
-falling back, although the upstream has the file. Verified on 2026-10-11:
-`net.fabricmc:fabric-loader:0.19.3:sources` resolves upstream without the mirror and fails with it.
-Under strict verification such a file would fail anyway until its hash is recorded. But a pull
-request that records a new file of an already mirrored version cannot build until this mirror
-publishes that file, and the list is generated from the mods' `master`. Such a change needs a way
-for the build to skip the mirror, which the mods do not have yet.
+here, it downloads that version's other files from here too and does not try the upstream for
+them. A build that needs a file of a mirrored version that is not here fails with `Could not find`,
+although the upstream has the file. Measured on 2026-10-11: Quick Skin's `neoforge-26.3` lane
+builds without the mirror but failed with it on `neoforge-26.3.0.3-beta-sources.jar`, because only
+Block Pops' metadata records that NeoForge version and it does not record the sources jar.
+
+To close most of that gap, `update-list` also locks every file that a locked `.module` declares,
+except javadoc jars. It reads each `.module` from Pages or its upstream, checks it against its
+locked sha256, and trusts the sha256 the `.module` gives for each of its files. Versions published
+with only a `.pom` cannot be completed this way: for example
+`net.fabricmc:fabric-loader:0.19.3:sources` still fails with the mirror. Under strict verification
+such a file would fail anyway until its hash is recorded, but a pull request that records a new file
+of a `.pom`-only mirrored version cannot build until that change reaches the mods' `master` and
+this mirror republishes. Such a change needs a way for the build to skip the mirror, which the mods
+do not have yet.
 
 Gradle dependency verification still checks every file against each mod's own
 `verification-metadata.xml`, whichever repository served it. That check, not this repository, is

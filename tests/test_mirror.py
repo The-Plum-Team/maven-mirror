@@ -71,6 +71,26 @@ class ListTest(unittest.TestCase):
         self.assertEqual([e.path for e in entries], ["net/fabricmc/fabric-loader/2.0/fabric-loader-2.0.jar"])
         self.assertIn("net.fabricmc:fabric-loader:1.0", excluded)
 
+    def test_module_declared_files_are_added_with_their_declared_hashes(self):
+        base = "net/neoforged/neoforge/1.0"
+        module = json.dumps({"variants": [
+            {"name": "runtime", "files": [{"url": "neoforge-1.0-universal.jar", "sha256": "a" * 64}]},
+            {"name": "sources", "files": [{"url": "neoforge-1.0-sources.jar", "sha256": "b" * 64}]},
+            {"name": "javadoc", "files": [{"url": "neoforge-1.0-javadoc.jar", "sha256": "c" * 64}]},
+            {"name": "elsewhere", "available-at": {"url": "../../x/1.0/x-1.0.module"}},
+        ]}).encode()
+        entries = [mirror.Entry(f"{base}/neoforge-1.0.module", (sha(module),), ("neoforged",), "LGPL-2.1"),
+                   mirror.Entry(f"{base}/neoforge-1.0-universal.jar", ("a" * 64,), ("neoforged",), "LGPL-2.1")]
+        added = mirror.module_declared(entries, lambda entry: module)
+        self.assertEqual([(e.path, e.hashes, e.license) for e in added],
+                         [(f"{base}/neoforge-1.0-sources.jar", ("b" * 64,), "LGPL-2.1")])
+
+    def test_module_with_unsafe_file_url_is_rejected(self):
+        module = json.dumps({"variants": [{"files": [{"url": "..", "sha256": "a" * 64}]}]}).encode()
+        entries = [mirror.Entry("net/fabricmc/x/1.0/x-1.0.module", (sha(module),), ("fabric",), "MIT")]
+        with self.assertRaises(mirror.MirrorError):
+            mirror.module_declared(entries, lambda entry: module)
+
     def test_unsafe_paths_are_rejected(self):
         with self.assertRaises(mirror.MirrorError):
             mirror.check_path("net/fabricmc/../x/1/x-1.jar")
