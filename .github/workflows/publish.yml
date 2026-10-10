@@ -1,0 +1,131 @@
+name: Publish mirror
+
+on:
+  schedule:
+    # Weekly refresh; only files missing from the verified store are downloaded.
+    - cron: "17 4 * * 1"
+  workflow_dispatch:
+    inputs:
+      seed_release:
+        description: "Optional release tag of this repository whose seed-*.tar assets are reused before any upstream (every file is still sha256-checked)"
+        required: false
+        default: ""
+      allow_incomplete:
+        description: "Publish the complete components even if some files are still unreachable"
+        type: boolean
+        default: true
+  push:
+    branches: [main]
+    paths:
+      - artifacts.lock
+      - policy.json
+      - scripts/mirror.py
+      - .github/workflows/publish.yml
+
+permissions: {}
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+env:
+  PAGES_URL: https://the-plum-team.github.io/maven-mirror/
+
+jobs:
+  build:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    permissions:
+      contents: read
+    outputs:
+      publishable: ${{ steps.fill.outputs.publishable }}
+      complete: ${{ steps.fill.outputs.complete }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Restore verified store
+        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: store
+          key: verified-store-${{ github.run_id }}
+          restore-keys: verified-store-
+
+      - name: Download seed release
+        if: ${{ inputs.seed_release != '' }}
+        env:
+          GH_TOKEN: ${{ github.token }}
+          SEED_TAG: ${{ inputs.seed_release }}
+        run: |
+          mkdir -p seed-download seed
+          gh release download "$SEED_TAG" --repo "$GITHUB_REPOSITORY" --pattern 'seed-*.tar' --dir seed-download
+          python3 -I - seed-download seed <<'EOF'
+          import pathlib, sys, tarfile
+          source, dest = map(pathlib.Path, sys.argv[1:3])
+          for archive in sorted(source.glob("seed-*.tar")):
+              with tarfile.open(archive) as tar:
+                  tar.extractall(dest, filter="data")
+          EOF
+
+      - name: Check the artifact list against the mods
+        continue-on-error: true
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: python3 -I scripts/mirror.py update-list --check --summary "$GITHUB_STEP_SUMMARY"
+
+      - name: Fill and verify
+        id: fill
+        env:
+          ALLOW_INCOMPLETE: ${{ inputs.allow_incomplete != false }}
+        run: |
+          args=(--site site --store store --pages "$PAGES_URL" --summary "$GITHUB_STEP_SUMMARY" --github-output "$GITHUB_OUTPUT")
+          if [ -d seed ]; then args+=(--seed-maven seed); fi
+          if [ "$ALLOW_INCOMPLETE" = "true" ]; then args+=(--allow-incomplete); fi
+          python3 -I scripts/mirror.py fill "${args[@]}"
+
+      - name: Save verified store
+        if: ${{ always() && hashFiles('store/**') != '' }}
+        uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: store
+          key: verified-store-${{ github.run_id }}
+
+      - name: Upload Pages artifact
+        if: ${{ steps.fill.outputs.publishable == 'true' }}
+        uses: actions/upload-pages-artifact@fc324d3547104276b827a68afc52ff2a11cc49c9 # v5.0.0
+        with:
+          path: site
+
+  deploy:
+    needs: build
+    if: ${{ needs.build.outputs.publishable == 'true' }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@368f82528645a54fb793d4d04e342629a3f51346 # v5.0.1
+
+  verify:
+    needs: [build, deploy]
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Verify published files over HTTPS
+        run: python3 -I scripts/mirror.py verify-remote --base "$PAGES_URL" --per-upstream 4
+      - name: Report completeness
+        if: ${{ needs.build.outputs.complete != 'true' }}
+        run: |
+          echo "::error::Some locked files could not be obtained yet; their components are not published. See the build job summary."
+          exit 1

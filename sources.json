@@ -1,0 +1,15 @@
+{
+  "comment": "Gradle dependency-verification metadata the reviewed artifact list is generated from. 'update-list' reads each file at the given ref.",
+  "sources": [
+    {
+      "repository": "The-Plum-Team/Quick-Skin-Mod",
+      "ref": "master",
+      "path": "gradle/verification-metadata.xml"
+    },
+    {
+      "repository": "The-Plum-Team/Block-Pops-Minecraft-Mod",
+      "ref": "master",
+      "path": "gradle/verification-metadata.xml"
+    }
+  ]
+}
