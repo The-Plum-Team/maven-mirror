@@ -102,6 +102,21 @@ Gradle dependency verification still checks every file against each mod's own
 `verification-metadata.xml`, whichever repository served it. That check, not this repository, is
 the final guarantee, which is why the mirror is safest with strict verification enabled.
 
+Dynamic versions are the remaining gap. For a dynamic version Gradle lists versions from every
+repository that may hold the module, and a listing error fails the build even when the mirror holds
+the version it would pick. Two such lookups exist today:
+
+- Architectury Loom resolves `dev.architectury:mixin-patched:0.8.5.+` for Forge projects, so Forge
+  lanes still need `maven.architectury.dev`.
+- Architectury's transformer classpath asks for `net.fabricmc:fabric-loader:+` unless the build
+  forces it. Block Pops forces it to its matrix-owned loader; Quick Skin does not yet, so Quick
+  Skin's common transform still needs `maven.fabricmc.net`.
+
+Measured on a rig with every mirrored version forbidden upstream: Block Pops' Fabric 1.20.1,
+NeoForge 1.21.4 and NeoForge 26.3 lanes build with `maven.fabricmc.net`, `meta.fabricmc.net`,
+`maven.architectury.dev` and `maven.kikugie.dev` unreachable, and its Forge 1.20.1 lane builds with
+only the Fabric and Kikugie hosts unreachable.
+
 If Pages itself is unreachable Gradle fails instead of falling back (it only falls back on 404), so
 the mirror moves the single point of failure for these groups from the modding hosts to GitHub
 Pages. A build with a warm Gradle cache and `--offline` needs neither.
