@@ -22,6 +22,7 @@ import re
 import shutil
 import sys
 import tempfile
+import threading
 import time
 import urllib.error
 import urllib.request
@@ -42,6 +43,7 @@ PAGES_SITE_WARN = int(PAGES_SITE_LIMIT * 0.8)
 SEGMENT = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._+-]*$")
 HEX64 = re.compile(r"^[0-9a-f]{64}$")
 CHECKSUMS = ("md5", "sha1", "sha256", "sha512")
+HOST_FAILURE_LIMIT = 6  # consecutive network errors before a host is skipped for the rest of a run
 MANIFEST = "mirror-manifest.json"
 
 
@@ -280,7 +282,7 @@ def sha256_file(path: Path) -> str:
     return digest.hexdigest()
 
 
-def download(url: str, dest: Path, attempts: int = 3, timeout: float = 60) -> str:
+def download(url: str, dest: Path, attempts: int = 3, timeout: float = 30) -> str:
     """Return "ok", "missing" (404/410) or an error description."""
     last = "error"
     for attempt in range(attempts):
@@ -315,6 +317,25 @@ class Filler:
         self.seed_maven = [Path(p) for p in args.seed_maven]
         self.pages = args.pages.rstrip("/") + "/" if args.pages else None
         self.upstream = not args.no_upstream
+        self.failures: dict[str, int] = {}
+        self.lock = threading.Lock()
+
+    def host_down(self, kind: str) -> bool:
+        with self.lock:
+            return self.failures.get(kind, 0) >= HOST_FAILURE_LIMIT
+
+    def record(self, kind: str, reachable: bool) -> None:
+        with self.lock:
+            if reachable:
+                self.failures[kind] = 0
+            else:
+                self.failures[kind] = self.failures.get(kind, 0) + 1
+                if self.failures[kind] == HOST_FAILURE_LIMIT:
+                    print(f"{kind} failed {HOST_FAILURE_LIMIT} times in a row; skipping it for this run",
+                          flush=True)
+
+    def unreachable_hosts(self) -> list[str]:
+        return sorted(k for k, v in self.failures.items() if v >= HOST_FAILURE_LIMIT)
 
     def candidates(self, entry: Entry):
         group_path, name, version, filename = entry.path.rsplit("/", 3)
@@ -353,7 +374,11 @@ class Filler:
                     shutil.copyfile(location, temp)
                     status = "ok"
                 else:
+                    if self.host_down(kind):
+                        outcome.notes.append(f"{kind}: skipped, host unreachable")
+                        continue
                     status = download(location, temp)
+                    self.record(kind, status in ("ok", "missing"))
                 if status == "missing":
                     continue
                 if status != "ok":
@@ -507,6 +532,8 @@ def cmd_fill(args) -> int:
              f"({', '.join(f'{k} {v}' for k, v in sorted(sources.items()))})",
              f"Components complete: {len(complete)} of {len(by_component)}",
              f"Missing files: {len(missing)}; sha256 mismatches from an upstream: {len(fatal)}"]
+    if filler.unreachable_hosts():
+        lines.append(f"Unreachable during this run: {', '.join(filler.unreachable_hosts())}")
     for outcome in fatal:
         lines.append(f"MISMATCH {outcome.entry.path}: {outcome.fatal}")
     for outcome in missing[:40]:
