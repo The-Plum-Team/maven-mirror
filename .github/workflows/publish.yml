@@ -77,7 +77,9 @@ jobs:
       - name: Fill and verify
         id: fill
         env:
-          ALLOW_INCOMPLETE: ${{ inputs.allow_incomplete != false }}
+          # Scheduled and push runs have no inputs. Expressions coerce null and false to 0, so
+          # `inputs.allow_incomplete != false` would be false there; only a dispatch may opt out.
+          ALLOW_INCOMPLETE: ${{ github.event_name != 'workflow_dispatch' || inputs.allow_incomplete }}
         run: |
           args=(--site site --store store --pages "$PAGES_URL" --summary "$GITHUB_STEP_SUMMARY" --github-output "$GITHUB_OUTPUT")
           if [ -d seed ]; then args+=(--seed-maven seed); fi

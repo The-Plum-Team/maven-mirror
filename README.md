@@ -46,7 +46,13 @@ The workflows use only the Python standard library, pin every action by commit S
 
 Each include rule in `policy.json` names its license and links the upstream's license file. Forge
 and NeoForge are mirrored as their projects license and publish them (LGPL-2.1, including their
-patch artifacts, whose authorship the Forge license assigns to the project).
+patch artifacts, whose authorship the Forge license assigns to the project). Checked on
+2026-10-11 for Forge 1.20.1-47.4.9 and NeoForge 21.1.251: no jar holds a `net/minecraft` or
+`com/mojang` class or source file. The `userdev` and `installer` jars hold binary diffs and source
+patches against Minecraft (`joined.lzma`, `client.lzma`, `server.lzma`, `patches/`). The
+`universal` and `sources` jars hold the loaders' own generated JSON under `assets/minecraft` and
+`data/minecraft` (tags, loot tables, recipes and advancements that the loader overrides). These are
+the files their projects publish for everyone on their own Maven repositories.
 
 Maven Central and the Gradle Plugin Portal are not mirrored: they are not the hosts whose outages
 this addresses.
@@ -97,6 +103,17 @@ The mirror deliberately holds no file that is not in the reviewed list, so a mod
 Gradle Module Metadata has its `.module` file here but not the `.pom` stub that Gradle fetches first
 by default; `metadataSources { gradleMetadata(); mavenPom() }` on this repository only makes Gradle
 ask for the `.module` directly.
+
+The fallback works per version, not per file. Once Gradle finds a version's `.module` or `.pom`
+here, it downloads that version's jars from here too and does not try the upstream for them. So a
+build that needs a file of a mirrored version that is not in the list (a classifier, sources or
+javadoc jar that no mod's verification metadata records) fails with `Could not find` instead of
+falling back, although the upstream has the file. Verified on 2026-10-11:
+`net.fabricmc:fabric-loader:0.19.3:sources` resolves upstream without the mirror and fails with it.
+Under strict verification such a file would fail anyway until its hash is recorded. But a pull
+request that records a new file of an already mirrored version cannot build until this mirror
+publishes that file, and the list is generated from the mods' `master`. Such a change needs a way
+for the build to skip the mirror, which the mods do not have yet.
 
 Gradle dependency verification still checks every file against each mod's own
 `verification-metadata.xml`, whichever repository served it. That check, not this repository, is
