@@ -58,8 +58,7 @@ this addresses.
   downloaded by Loom from Mojang and are never stored here.
 - **Minecraft-derived decompilation data with no clear license**: NeoForm (`net.neoforged:neoform`,
   no license in its repository) and MCPConfig/MCInjector (`de.oceanlabs.mcp:*`).
-- **Anything whose license could not be confirmed**: currently `net.fabricmc:fabric-log4j-util` and
-  `com.eliotlash.mclib:mclib`.
+- **Anything whose license could not be confirmed**: currently `com.eliotlash.mclib:mclib`.
 - **Versions the mods disagree about**: when the two mods' verification metadata record different
   sha256 values for the same file, the whole version stays on its upstream until they agree.
 

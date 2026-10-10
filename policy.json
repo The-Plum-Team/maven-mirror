@@ -35,11 +35,6 @@
       "reason": "NeoForm: decompilation data derived from Minecraft; the neoforged/NeoForm repository has no license file. Unclear, so excluded."
     },
     {
-      "group": "^net[.]fabricmc$",
-      "module": "^fabric-log4j-util$",
-      "reason": "No public source repository or license statement found. Unclear, so excluded until verified."
-    },
-    {
       "group": "^com[.]eliotlash[.]mclib$",
       "module": ".*",
       "reason": "mclib: neither the POM nor mchorse/mclib states a license. Unclear, so excluded."
@@ -51,196 +46,263 @@
       "module": "^fabric-loader$",
       "license": "Apache-2.0",
       "evidence": "https://github.com/FabricMC/fabric-loader/blob/master/LICENSE",
-      "upstreams": ["fabric"]
+      "upstreams": [
+        "fabric"
+      ]
     },
     {
       "group": "^net[.]fabricmc[.]fabric-api$",
       "module": ".*",
       "license": "Apache-2.0",
       "evidence": "https://github.com/FabricMC/fabric-api/blob/HEAD/LICENSE",
-      "upstreams": ["fabric"]
+      "upstreams": [
+        "fabric"
+      ]
     },
     {
       "group": "^net[.]fabricmc$",
       "module": "^(intermediary|yarn)$",
       "license": "CC0-1.0",
       "evidence": "https://github.com/FabricMC/intermediary/blob/master/LICENSE",
-      "upstreams": ["fabric"]
+      "upstreams": [
+        "fabric"
+      ]
     },
     {
       "group": "^net[.]fabricmc$",
       "module": "^(access-widener|mapping-io|tiny-mappings-parser|stitch|dev-launch-injector|class-tweaker)$",
       "license": "Apache-2.0",
-      "evidence": "https://github.com/FabricMC (LICENSE of access-widener, mapping-io, tiny-mappings-parser, stitch, dev-launch-injector, class-tweaker)",
-      "upstreams": ["fabric"]
+      "evidence": "https://github.com/FabricMC (LICENSE of access-widener, mapping-io, tiny-mappings-parser, stitch; fabric-tooling/dev-launch-injector/LICENSE, fabric-tooling/class-tweaker/LICENSE)",
+      "upstreams": [
+        "fabric"
+      ]
     },
     {
       "group": "^net[.]fabricmc$",
       "module": "^fabric-fernflower$",
       "license": "Apache-2.0",
       "evidence": "https://github.com/FabricMC/intellij-fernflower (JetBrains Fernflower, Apache-2.0 per-file headers)",
-      "upstreams": ["fabric"]
+      "upstreams": [
+        "fabric"
+      ]
     },
     {
       "group": "^net[.]fabricmc$",
       "module": "^(sponge-mixin|cfr|fabric-mixin-compile-extensions|lorenz-tiny|fabric-loom-native|fabric-loom)$",
       "license": "MIT",
       "evidence": "https://github.com/FabricMC (LICENSE of Mixin, cfr, fabric-mixin-compile-extensions, lorenz-tiny, fabric-loom-native, fabric-loom)",
-      "upstreams": ["fabric"]
+      "upstreams": [
+        "fabric"
+      ]
+    },
+    {
+      "group": "^net[.]fabricmc$",
+      "module": "^fabric-log4j-util$",
+      "license": "MIT",
+      "evidence": "https://github.com/FabricMC/fabric-tooling/blob/HEAD/fabric-log4j-util/LICENSE (fork of Minecrell's TerminalConsoleAppender)",
+      "upstreams": [
+        "fabric"
+      ]
     },
     {
       "group": "^net[.]fabricmc$",
       "module": "^tiny-remapper$",
       "license": "LGPL-3.0",
       "evidence": "https://github.com/FabricMC/tiny-remapper/blob/master/LICENSE",
-      "upstreams": ["fabric"]
+      "upstreams": [
+        "fabric"
+      ]
     },
     {
       "group": "^net[.]fabricmc$",
       "module": "^mercury$",
       "license": "EPL-2.0",
       "evidence": "https://github.com/FabricMC/Mercury/blob/master/LICENSE.txt",
-      "upstreams": ["fabric"]
+      "upstreams": [
+        "fabric"
+      ]
     },
     {
       "group": "^net[.]fabricmc$",
       "module": "^mercurymixin$",
       "license": "MPL-2.0",
       "evidence": "https://github.com/FabricMC/MercuryMixin/blob/master/LICENSE",
-      "upstreams": ["fabric"]
+      "upstreams": [
+        "fabric"
+      ]
     },
     {
       "group": "^net[.]fabricmc[.]unpick$",
       "module": "^(unpick|unpick-format-utils)$",
       "license": "MIT",
       "evidence": "https://github.com/FabricMC/unpick/blob/HEAD/LICENSE",
-      "upstreams": ["fabric"]
+      "upstreams": [
+        "fabric"
+      ]
     },
     {
       "group": "^dev[.]architectury$",
       "module": "^architectury(-fabric|-forge|-neoforge)?$",
       "license": "LGPL-3.0",
       "evidence": "https://github.com/architectury/architectury-api/blob/HEAD/LICENSE",
-      "upstreams": ["architectury"]
+      "upstreams": [
+        "architectury"
+      ]
     },
     {
       "group": "^dev[.]architectury$",
       "module": "^(architectury-loom|architectury-transformer|refmap-remapper|at|mixin-patched|mcp-annotations|architectury-naming-service|architectury-mixin-remapper-service)$",
       "license": "MIT",
       "evidence": "https://github.com/architectury (LICENSE of architectury-loom, architectury-transformer, refmap-remapper, at, architectury-mixin, architectury-loom-runtime)",
-      "upstreams": ["architectury"]
+      "upstreams": [
+        "architectury"
+      ]
     },
     {
       "group": "^dev[.]architectury[.]loom(-no-remap)?$",
       "module": "^dev[.]architectury[.]loom(-no-remap)?[.]gradle[.]plugin$",
       "license": "MIT",
       "evidence": "https://github.com/architectury/architectury-loom/blob/HEAD/LICENSE (Gradle plugin marker)",
-      "upstreams": ["architectury"]
+      "upstreams": [
+        "architectury"
+      ]
     },
     {
       "group": "^architectury-plugin$",
       "module": "^architectury-plugin[.]gradle[.]plugin$",
       "license": "MIT",
       "evidence": "https://github.com/architectury/architectury-plugin/blob/HEAD/LICENSE",
-      "upstreams": ["architectury"]
+      "upstreams": [
+        "architectury"
+      ]
     },
     {
       "group": "^dev[.]architectury$",
       "module": "^architectury-injectables$",
       "license": "Apache-2.0",
       "evidence": "https://github.com/architectury/architectury-injectables/blob/HEAD/LICENSE",
-      "upstreams": ["architectury"]
+      "upstreams": [
+        "architectury"
+      ]
     },
     {
       "group": "^dev[.]architectury$",
       "module": "^tiny-remapper$",
       "license": "LGPL-3.0",
       "evidence": "https://github.com/architectury/tiny-remapper/blob/HEAD/LICENSE",
-      "upstreams": ["architectury"]
+      "upstreams": [
+        "architectury"
+      ]
     },
     {
       "group": "^dev[.]architectury$",
       "module": "^mercury$",
       "license": "EPL-2.0",
       "evidence": "https://github.com/architectury/Mercury (POM declares EPL-2.0)",
-      "upstreams": ["architectury"]
+      "upstreams": [
+        "architectury"
+      ]
     },
     {
       "group": "^dev[.]kikugie([.]stonecutter)?$",
       "module": "^(stonecutter|dev[.]kikugie[.]stonecutter[.]gradle[.]plugin)$",
       "license": "LGPL-3.0",
       "evidence": "https://github.com/stonecutter-versioning/stonecutter/blob/HEAD/LICENSE",
-      "upstreams": ["kikugie"]
+      "upstreams": [
+        "kikugie"
+      ]
     },
     {
       "group": "^net[.]neoforged$",
       "module": "^(neoforge|bus|coremods|mergetool|srgutils|AutoRenamingTool|JarJarFileSystems|JarJarMetadata|JarJarSelector)$",
       "license": "LGPL-2.1",
       "evidence": "https://github.com/neoforged (LICENSE of NeoForge, Bus, CoreMods, MergeTool, SRGUtils, AutoRenamingTool, JarJar)",
-      "upstreams": ["neoforged"]
+      "upstreams": [
+        "neoforged"
+      ]
     },
     {
       "group": "^net[.]neoforged[.]installertools$",
       "module": ".*",
       "license": "LGPL-2.1",
       "evidence": "https://github.com/neoforged/InstallerTools/blob/HEAD/LICENSE",
-      "upstreams": ["neoforged"]
+      "upstreams": [
+        "neoforged"
+      ]
     },
     {
       "group": "^net[.]neoforged([.]accesstransformers)?$",
       "module": "^(accesstransformers|at-cli|at-modlauncher|at-parser)$",
       "license": "MIT",
       "evidence": "https://github.com/neoforged/AccessTransformers/blob/HEAD/LICENSE",
-      "upstreams": ["neoforged"]
+      "upstreams": [
+        "neoforged"
+      ]
     },
     {
       "group": "^net[.]neoforged[.]fancymodloader$",
       "module": ".*",
       "license": "LGPL-2.1",
       "evidence": "https://github.com/neoforged/FancyModLoader/blob/HEAD/LICENSE.txt (bundled modlauncher LGPL-3.0, securejarhandler MIT)",
-      "upstreams": ["neoforged"]
+      "upstreams": [
+        "neoforged"
+      ]
     },
     {
       "group": "^cpw[.]mods$",
       "module": "^(modlauncher|bootstraplauncher)$",
       "license": "LGPL-3.0",
       "evidence": "https://github.com/McModLauncher/modlauncher/blob/HEAD/LICENSE",
-      "upstreams": ["neoforged", "forge"]
+      "upstreams": [
+        "neoforged",
+        "forge"
+      ]
     },
     {
       "group": "^cpw[.]mods$",
       "module": "^securejarhandler$",
       "license": "MIT",
       "evidence": "https://github.com/McModLauncher/securejarhandler/blob/HEAD/LICENSE",
-      "upstreams": ["neoforged", "forge"]
+      "upstreams": [
+        "neoforged",
+        "forge"
+      ]
     },
     {
       "group": "^net[.]minecraftforge$",
       "module": "^(forge|fmlcore|fmlloader|fmlearlydisplay|javafmllanguage|lowcodelanguage|mclanguage)$",
       "license": "LGPL-2.1",
       "evidence": "https://github.com/MinecraftForge/MinecraftForge/blob/HEAD/LICENSE.txt",
-      "upstreams": ["forge"]
+      "upstreams": [
+        "forge"
+      ]
     },
     {
       "group": "^net[.]minecraftforge$",
       "module": "^(eventbus|coremods|accesstransformers|installertools|JarJarFileSystems|JarJarMetadata|JarJarSelector|mergetool|srgutils|binarypatcher|unsafe|forgespi)$",
       "license": "LGPL-2.1",
       "evidence": "https://github.com/MinecraftForge (LICENSE of EventBus, CoreMods, AccessTransformers, InstallerTools, JarJar, MergeTool, SrgUtils, BinaryPatcher, Unsafe, ForgeSPI)",
-      "upstreams": ["forge"]
+      "upstreams": [
+        "forge"
+      ]
     },
     {
       "group": "^net[.]minecraftforge$",
       "module": "^DiffPatch$",
       "license": "MIT",
       "evidence": "https://github.com/MinecraftForge/DiffPatch/blob/HEAD/LICENSE",
-      "upstreams": ["forge"]
+      "upstreams": [
+        "forge"
+      ]
     },
     {
       "group": "^(software[.]bernie[.]geckolib|com[.]geckolib)$",
       "module": "^geckolib-.*$",
       "license": "MIT",
       "evidence": "https://github.com/bernie-g/geckolib/blob/HEAD/LICENSE",
-      "upstreams": ["geckolib"]
+      "upstreams": [
+        "geckolib"
+      ]
     }
   ]
 }

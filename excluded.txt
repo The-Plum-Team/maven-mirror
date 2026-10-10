@@ -56,7 +56,6 @@ net.fabricmc.fabric-api:fabric-resource-conditions-api-v1:4.3.0+8dc279b119  # th
 net.fabricmc.fabric-api:fabric-resource-loader-v0:1.3.1+5b5275af19  # the verification sources record different sha256 values for this component
 net.fabricmc.fabric-api:fabric-sound-api-v1:1.0.23+6573ed8c19  # the verification sources record different sha256 values for this component
 net.fabricmc.fabric-api:fabric-transitive-access-wideners-v1:6.2.0+45b9699719  # the verification sources record different sha256 values for this component
-net.fabricmc:fabric-log4j-util:1.0.2  # No public source repository or license statement found. Unclear, so excluded until verified.
 net.neoforged:neoform:1.21.1-20240808.144430  # NeoForm: decompilation data derived from Minecraft; the neoforged/NeoForm repository has no license file. Unclear, so excluded.
 net.neoforged:neoform:1.21.10-20251010.172816  # NeoForm: decompilation data derived from Minecraft; the neoforged/NeoForm repository has no license file. Unclear, so excluded.
 net.neoforged:neoform:1.21.11-20251209.172050  # NeoForm: decompilation data derived from Minecraft; the neoforged/NeoForm repository has no license file. Unclear, so excluded.

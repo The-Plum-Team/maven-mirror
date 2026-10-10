@@ -3267,6 +3267,8 @@ ea300b841949a290641db8c137e3da205462a089a7472d8f1657179fd23bcf4a fabric Apache-2
 9bf472a78aed99625fafc9a81463e731747a52e520f887a532d3854be768c65f fabric Apache-2.0 net/fabricmc/fabric-loader/0.19.3/fabric-loader-0.19.3.pom
 93044e4dd46de5d8136701292f05e868da096d2c9fddb4793e4fdbcc63efc695 fabric Apache-2.0 net/fabricmc/fabric-loader/0.19.5/fabric-loader-0.19.5.jar
 7be3f6664a1d7ca8cf91fee3ca2ad9c2ddfd4eff25d8513605118206e4f90f0c fabric Apache-2.0 net/fabricmc/fabric-loader/0.19.5/fabric-loader-0.19.5.pom
+538e845a086d58301b7dfb2135db52213666374ee9a23f0d9dc776c6e37c25b2 fabric MIT net/fabricmc/fabric-log4j-util/1.0.2/fabric-log4j-util-1.0.2.jar
+ac6e516f30638c086fa54090935df95f0dd2b693ba858520eb60af4f97380d09 fabric MIT net/fabricmc/fabric-log4j-util/1.0.2/fabric-log4j-util-1.0.2.module
 590f8966d3136d92acbdcf6d1107dac789e5d6af219d766dfdc3b1c0fe3cee81 fabric MIT net/fabricmc/fabric-loom-native/0.2.0/fabric-loom-native-0.2.0.jar
 8370853dca591385d934a560aac0993f121286877893ada50553d3260b46a05d fabric MIT net/fabricmc/fabric-loom-native/0.2.0/fabric-loom-native-0.2.0.pom
 23a8ffb25038ba5ddeee30182eb17144e89b9cc5a72c25a9486d0030f9aa4ca6 fabric MIT net/fabricmc/fabric-mixin-compile-extensions/0.6.0/fabric-mixin-compile-extensions-0.6.0.jar
