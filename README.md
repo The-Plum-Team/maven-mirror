@@ -76,6 +76,9 @@ one answers 404, so anything not mirrored still resolves from its upstream:
 ```kotlin
 maven("https://the-plum-team.github.io/maven-mirror/") {
     name = "PlumMavenMirror"
+    // Only the files in the verification metadata are mirrored: a module's .module file without
+    // the .pom that merely points to it, so Gradle must look for the .module first.
+    metadataSources { gradleMetadata(); mavenPom() }
     mavenContent { releasesOnly() }
     content {
         includeGroupByRegex("net\\.fabricmc(\\..*)?")
@@ -90,6 +93,11 @@ maven("https://the-plum-team.github.io/maven-mirror/") {
     }
 }
 ```
+
+The mirror deliberately holds no file that is not in the reviewed list, so a module published with
+Gradle Module Metadata has its `.module` file here but not the `.pom` stub that Gradle fetches first
+by default; `metadataSources { gradleMetadata(); mavenPom() }` on this repository only makes Gradle
+ask for the `.module` directly.
 
 Gradle dependency verification still checks every file against each mod's own
 `verification-metadata.xml`, whichever repository served it. That check, not this repository, is
