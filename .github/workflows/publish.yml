@@ -40,6 +40,7 @@ jobs:
     outputs:
       publishable: ${{ steps.fill.outputs.publishable }}
       complete: ${{ steps.fill.outputs.complete }}
+      site_bytes: ${{ steps.fill.outputs.site_bytes }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -131,3 +132,19 @@ jobs:
         run: |
           echo "::error::Some locked files could not be obtained yet; their components are not published. See the build job summary."
           exit 1
+
+  size:
+    # Runs after the deploy so a large site is still published; the failed run is the alert.
+    needs: [build, deploy]
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Site stays under 90% of the 1 GB Pages limit
+        env:
+          SITE_BYTES: ${{ needs.build.outputs.site_bytes }}
+        run: python3 -I scripts/mirror.py check-size --bytes "$SITE_BYTES" --annotate
