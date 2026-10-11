@@ -7,6 +7,7 @@ Subcommands:
   fill           obtain every locked file (verified store, seeds, the published
                  mirror, then the upstream), verify its sha256, and build the site
   verify-remote  download files from a published mirror and check them against the lock
+  check-size     fail when a site size is above 90% of the GitHub Pages limit
 
 Only the Python standard library is used. Every file that enters the store or the site has
 matched a sha256 from artifacts.lock; a mismatch from an upstream is fatal.
@@ -40,6 +41,7 @@ USER_AGENT = "The-Plum-Team-maven-mirror/1 (+https://github.com/The-Plum-Team/ma
 PAGES_FILE_LIMIT = 100 * 1024 * 1024
 PAGES_SITE_LIMIT = 1024 * 1024 * 1024
 PAGES_SITE_WARN = int(PAGES_SITE_LIMIT * 0.8)
+PAGES_SITE_ALERT = int(PAGES_SITE_LIMIT * 0.9)
 SEGMENT = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._+-]*$")
 HEX64 = re.compile(r"^[0-9a-f]{64}$")
 CHECKSUMS = ("md5", "sha1", "sha256", "sha512")
@@ -606,7 +608,10 @@ def cmd_fill(args) -> int:
         lines.append(f"Site: {stats['files']} artifact files ({stats['artifact_bytes'] / 1e6:.1f} MB), "
                      f"{stats['site_bytes'] / 1e6:.1f} MB with checksums and metadata "
                      f"({100 * stats['site_bytes'] / PAGES_SITE_LIMIT:.1f}% of the 1 GB Pages limit)")
-        if stats["site_bytes"] > PAGES_SITE_WARN:
+        alert = size_alert(stats["site_bytes"])
+        if alert:
+            lines.append("ALERT: " + alert)
+        elif stats["site_bytes"] > PAGES_SITE_WARN:
             lines.append("WARNING: the site is above 80% of the Pages size limit.")
         if missing:
             status = 3
@@ -660,6 +665,29 @@ def cmd_verify_remote(args) -> int:
     return 1 if failures or not chosen else 0
 
 
+# --------------------------------------------------------------------------- check-size
+
+
+def size_alert(site_bytes: int) -> str | None:
+    """The alert for a site above 90% of the Pages limit, or None below it."""
+    if site_bytes <= PAGES_SITE_ALERT:
+        return None
+    return (f"the site is {site_bytes / 1e6:.1f} MB, {100 * site_bytes / PAGES_SITE_LIMIT:.1f}% of the "
+            f"1 GB GitHub Pages limit (alert above 90%, {PAGES_SITE_ALERT / 1e6:.1f} MB). Publishing stops "
+            f"at 100%: drop loader versions the mods no longer build from their verification metadata, "
+            f"then run update-list (README, Size).")
+
+
+def cmd_check_size(args) -> int:
+    alert = size_alert(args.bytes)
+    if alert:
+        print(f"::error title=Mirror size::{alert}" if args.annotate else f"error: {alert}")
+        return 1
+    print(f"Site size {args.bytes / 1e6:.1f} MB, {100 * args.bytes / PAGES_SITE_LIMIT:.1f}% of the "
+          f"1 GB GitHub Pages limit (alert above 90%).")
+    return 0
+
+
 # --------------------------------------------------------------------------- main
 
 
@@ -692,6 +720,10 @@ def main(argv=None) -> int:
     verify.add_argument("--per-upstream", type=int, default=3)
     verify.add_argument("paths", nargs="*")
     verify.set_defaults(func=cmd_verify_remote)
+    size = sub.add_parser("check-size")
+    size.add_argument("--bytes", type=int, required=True, help="site size in bytes (fill's site_bytes output)")
+    size.add_argument("--annotate", action="store_true", help="print the alert as a GitHub Actions error annotation")
+    size.set_defaults(func=cmd_check_size)
     args = parser.parse_args(argv)
     try:
         return args.func(args)

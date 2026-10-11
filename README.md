@@ -148,7 +148,9 @@ Pages. A build with a warm Gradle cache and `--offline` needs neither.
 ## Size
 
 GitHub Pages allows a 1 GB site and 100 MB per file. `fill` refuses any file over 100 MB, fails
-above 1 GB and warns above 80%; the workflow summary reports the size on every run. Most of the
+above 1 GB and warns above 80%; the workflow summary reports the size on every run. Above 90%
+(966.4 MB) the publish workflow's `size` job fails after the deploy, so the site still goes out and
+the failed run is the alert (`python3 scripts/mirror.py check-size --bytes N` runs the same check). Most of the
 size is NeoForge and Forge installer, universal, userdev and sources jars, roughly 25 MB per loader
 version; when the list grows near the limit, versions the mods no longer build should be dropped
 from their verification metadata first.

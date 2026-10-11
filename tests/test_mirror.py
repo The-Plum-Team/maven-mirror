@@ -2,6 +2,7 @@ import contextlib
 import functools
 import hashlib
 import http.server
+import io
 import json
 import sys
 import tempfile
@@ -148,6 +149,21 @@ class FillTest(unittest.TestCase):
                                       allow_incomplete=True)
         self.assertEqual(status, 0)
         self.assertNotIn(jar, files)
+
+
+class SizeAlertTest(unittest.TestCase):
+    def test_below_ninety_percent_passes(self):
+        self.assertIsNone(mirror.size_alert(mirror.PAGES_SITE_ALERT))
+        with contextlib.redirect_stdout(io.StringIO()):
+            self.assertEqual(mirror.main(["check-size", "--bytes", str(834_000_000)]), 0)
+
+    def test_above_ninety_percent_fails_with_a_clear_message(self):
+        over = mirror.PAGES_SITE_ALERT + 1
+        self.assertIn("alert above 90%", mirror.size_alert(over))
+        out = io.StringIO()
+        with contextlib.redirect_stdout(out):
+            self.assertEqual(mirror.main(["check-size", "--bytes", str(over), "--annotate"]), 1)
+        self.assertTrue(out.getvalue().startswith("::error title=Mirror size::the site is "))
 
 
 if __name__ == "__main__":
