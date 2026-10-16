@@ -12,7 +12,7 @@
       "path": "gradle/verification-metadata.xml"
     },
     {
-      "repository": "The-Plum-Team/MultiplayerSpawners",
+      "repository": "The-Plum-Team/Multiplayer-Spawners-Mod",
       "ref": "main",
       "path": "gradle/verification-metadata.xml"
     }
