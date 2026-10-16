@@ -10,6 +10,11 @@
       "repository": "The-Plum-Team/Block-Pops-Minecraft-Mod",
       "ref": "master",
       "path": "gradle/verification-metadata.xml"
+    },
+    {
+      "repository": "The-Plum-Team/MultiplayerSpawners",
+      "ref": "main",
+      "path": "gradle/verification-metadata.xml"
     }
   ]
 }
