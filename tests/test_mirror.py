@@ -370,6 +370,23 @@ class PublishTest(unittest.TestCase):
         self.assertIn("net/fabricmc/fabric-loader/maven-metadata.xml", puts)
         self.assertEqual(set(PublisherStub.tokens), {"Bearer job-token"})
 
+    def test_no_pom_or_module_goes_before_the_jars(self):
+        base = "net/fabricmc/fabric-loader/1.0"
+        other = "net/fabricmc/other/2.0"
+        self.build({f"{base}/fabric-loader-1.0.pom": b"pom", f"{base}/fabric-loader-1.0.module": b"module",
+                    f"{base}/fabric-loader-1.0.jar": b"jar", f"{base}/fabric-loader-1.0-sources.jar": b"sources",
+                    f"{other}/other-2.0.pom": b"pom 2", f"{other}/other-2.0.jar": b"jar 2"})
+        self.publish()
+        artifacts = [path for path in PublisherStub.puts
+                     if path.endswith((".pom", ".module", ".jar")) and "maven-metadata" not in path]
+        self.assertEqual(len(artifacts), 6)
+        first_metadata = min(index for index, path in enumerate(artifacts) if path.endswith((".pom", ".module")))
+        self.assertTrue(all(path.endswith(".jar") for path in artifacts[:first_metadata]))
+        self.assertEqual(sum(path.endswith(".jar") for path in artifacts[:first_metadata]), 3)
+        # Each jar's own checksum files are there as well before any metadata goes
+        position = PublisherStub.puts.index(artifacts[first_metadata])
+        self.assertEqual(sum(path.endswith(".jar.sha256") for path in PublisherStub.puts[:position]), 3)
+
     def test_what_the_manifest_already_lists_is_not_sent_again(self):
         self.build({self.JAR: b"jar"})
         self.publish()
