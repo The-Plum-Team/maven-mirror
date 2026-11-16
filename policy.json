@@ -343,6 +343,16 @@
       "upstreams": [
         "forge"
       ]
+    },
+    {
+      "group": "^org[.]jdom$",
+      "module": "^jdom2$",
+      "license": "JDOM",
+      "evidence": "https://github.com/hunterhacker/jdom/blob/master/LICENSE.txt",
+      "upstreams": [
+        "google-central",
+        "central"
+      ]
     }
   ],
   "by_pom": {
