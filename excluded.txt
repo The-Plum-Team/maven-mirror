@@ -73,9 +73,11 @@ net.neoforged:neoform:26.1.2-1  # NeoForm: decompilation data derived from Minec
 net.neoforged:neoform:26.2-1  # NeoForm: decompilation data derived from Minecraft; the neoforged/NeoForm repository has no license file. Unclear, so excluded.
 net.neoforged:neoform:26.2-2  # NeoForm: decompilation data derived from Minecraft; the neoforged/NeoForm repository has no license file. Unclear, so excluded.
 net.neoforged:neoform:26.3-1  # NeoForm: decompilation data derived from Minecraft; the neoforged/NeoForm repository has no license file. Unclear, so excluded.
+org.jdom:jdom2:2.0.6.1  # no declared license is one the policy recognises: Similar to Apache License but with the acknowledgment clause removed
 org.lwjgl:lwjgl-freetype:3.3.3  # Mojang-patched native served only by libraries.minecraft.net.
 org.lwjgl:lwjgl-freetype:3.4.1  # Mojang-patched native served only by libraries.minecraft.net.
 org.lwjgl:lwjgl-freetype:3.4.3  # Mojang-patched native served only by libraries.minecraft.net.
+org.openjdk.nashorn:nashorn-core:15.4  # no declared license is one the policy recognises: GPL v2 with the Classpath exception
 
 ## In a mirrored group but not covered by any include rule (review needed)
 (none)

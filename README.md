@@ -1,12 +1,17 @@
 # Plum Maven Mirror
 
 A hash-checked, static Maven mirror of the openly licensed build dependencies that
-[Quick Skin](https://github.com/The-Plum-Team/Quick-Skin-Mod) and
-[Block Pops](https://github.com/The-Plum-Team/Block-Pops-Minecraft-Mod) resolve from modding
-Maven hosts. It exists so that an outage of `maven.fabricmc.net`, `maven.neoforged.net`,
-`maven.minecraftforge.net` or the other hosts below does not break those builds.
+[Quick Skin](https://github.com/The-Plum-Team/Quick-Skin-Mod),
+[Block Pops](https://github.com/The-Plum-Team/Block-Pops-Minecraft-Mod) and
+[Multiplayer Spawners](https://github.com/The-Plum-Team/Multiplayer-Spawners-Mod) resolve from
+modding Maven hosts, Maven Central and the Gradle Plugin Portal. It exists so that an outage or a
+rate limit of `maven.fabricmc.net`, `maven.neoforged.net`, `maven.minecraftforge.net`,
+`repo.maven.apache.org` or the other hosts below does not break those builds.
 
-It is published with GitHub Pages at **https://the-plum-team.github.io/maven-mirror/**.
+It is published at **https://maven.quickskin.net/**, a Cloudflare R2 bucket behind the team's own
+domain. Until November 2026 it was published with GitHub Pages at
+https://the-plum-team.github.io/maven-mirror/; that site stays as it was then, for builds that
+still name it, and gets nothing new.
 
 ## How it works
 
@@ -18,21 +23,47 @@ It is published with GitHub Pages at **https://the-plum-team.github.io/maven-mir
 2. The [`Publish mirror`](.github/workflows/publish.yml) workflow runs weekly, on manual dispatch
    and whenever the list or policy changes on `main`. For every locked file it tries, in order, the
    verified store restored from the Actions cache, an optional seed release, the copy already
-   published on Pages, and only then the upstream. **Only files that are still missing are
-   downloaded from an upstream.**
+   published (here, then on the old Pages site), and only then the upstream. **Only files that are
+   still missing are downloaded from an upstream.**
 3. Every candidate is checked against the sha256 in the list. A mismatching file from a cache, seed
    or the published site is discarded; **a mismatching file from an upstream stops the run and
-   nothing is deployed.**
+   nothing is published.**
 4. A version is published only when all of its locked files are present, so Gradle never finds a
    module's metadata here without its jars. The site holds the files plus `.md5`, `.sha1`,
    `.sha256` and `.sha512` checksum files, a `maven-metadata.xml` per module, and
-   `mirror-manifest.json`. A run also refuses to deploy a site that would drop files that are
-   published now (for example because Pages could not be read back).
-5. After deploying, the workflow downloads a sample of files from each upstream over the Pages URL
-   and checks their sha256 against the list.
+   `mirror-manifest.json`. A run also refuses to publish a site that would drop files that are
+   published now (for example because the mirror could not be read back).
+5. The `publish` job sends what the mirror lacks to the publisher (below): each file, then its
+   checksum files, then the listings of the modules that changed, and the manifest last, so the
+   manifest never names a file that is not there. A file that is published is never replaced or
+   deleted.
+6. After publishing, the workflow downloads a sample of files from each upstream over the mirror's
+   URL and checks their sha256 against the list.
 
 The workflows use only the Python standard library, pin every action by commit SHA and run with
-`permissions: {}` by default; only the deploy job gets `pages: write` and `id-token: write`.
+`permissions: {}` by default; only the publish job gets `id-token: write`.
+
+### The publisher
+
+The bucket is read directly at https://maven.quickskin.net/. The one way into it is the small
+Cloudflare Worker in [`worker/`](worker/src/index.ts), at https://maven-upload.quickskin.net/.
+It holds no secret and nobody's key is stored in this repository: the `publish` job presents the
+OpenID Connect token GitHub Actions issues to it, and the Worker checks, against GitHub's published
+keys, that the token is for this repository (by its numeric id), for `publish.yml` on `main`, and
+from a GitHub-hosted runner. Cloudflare R2 itself verifies each file against the sha256 the job
+names. An artifact or checksum file that exists is refused if the bytes differ; only
+`maven-metadata.xml`, `mirror-manifest.json` and `index.html` may change. There is no way to
+delete or list through it.
+
+It is deployed by hand with Wrangler, from an account that owns the `quickskin.net` zone:
+
+```sh
+cd worker && wrangler deploy
+node --experimental-strip-types --test test/index.test.ts   # its tests; Node 22.6 or later
+```
+
+`worker/wrangler.toml` names who may publish (`REPOSITORY_ID`, `OWNER_ID`, `WORKFLOW_REF`); a change
+there is a change of who can write to the mirror and takes effect only when it is deployed.
 
 ## What is mirrored
 
@@ -44,6 +75,7 @@ The workflows use only the Python standard library, pin every action by commit S
 | `maven.neoforged.net/releases` | `net.neoforged` NeoForge, FancyModLoader, Bus, CoreMods, AccessTransformers, InstallerTools, JarJar, SRGUtils, MergeTool, AutoRenamingTool; `cpw.mods` | LGPL-2.1, LGPL-3.0, MIT |
 | `maven.minecraftforge.net` | `net.minecraftforge` Forge, FML modules and tooling | LGPL-2.1, MIT |
 | `dl.cloudsmith.io/public/geckolib3` | `software.bernie.geckolib`, `com.geckolib` | MIT |
+| `repo.maven.apache.org/maven2` (read first from Google's copy of it) and `plugins.gradle.org/m2` | every other component the mods record, by the license its own POM declares | Apache-2.0, MIT, BSD, EPL, LGPL, MPL-2.0, CDDL, Unicode, CC0-1.0, public domain, ISC, Bouncy Castle |
 
 Each include rule in `policy.json` names its license and links the upstream's license file. Forge
 and NeoForge are mirrored as their projects license and publish them (LGPL-2.1, including their
@@ -55,8 +87,31 @@ patches against Minecraft (`joined.lzma`, `client.lzma`, `server.lzma`, `patches
 `data/minecraft` (tags, loot tables, recipes and advancements that the loader overrides). These are
 the files their projects publish for everyone on their own Maven repositories.
 
-Maven Central and the Gradle Plugin Portal are not mirrored: they are not the hosts whose outages
-this addresses.
+### Maven Central and the Gradle Plugin Portal
+
+Everything else the mods record (LWJGL, Netty, Guava, Log4j, ASM, the Kotlin and Gradle plugins and
+so on) is mirrored by the `by_pom` rule of `policy.json`, not by a rule per module. `update-list`
+reads the component's own POM, or the nearest parent POM that declares a license, and mirrors the
+component when at least one declared license is one the rule recognises; a POM that lists several
+licenses offers a choice among them, as the
+[POM reference](https://maven.apache.org/pom.html#Licenses) says. A component that is build
+metadata only (nothing but `.pom` files, such as a parent POM) is mirrored whether or not it names
+a license. A component whose POM declares no recognised license stays on its upstream and is listed
+in `excluded.txt` with what it declared; an include rule with evidence can add it.
+
+A POM the mods record is believed only at a recorded sha256. A parent POM that no mod records is
+read as its upstream serves it: it decides only whether files that are recorded get mirrored. If a
+host cannot be read while the list is generated, the run stops; only "not found" counts as a POM
+that is absent, so an outage never turns into dropped components.
+
+A version published without Gradle Module Metadata declares nothing about its other files, and
+Gradle takes every file of a version from the repository that served its POM. So `update-list`
+also reads the upstream's own index of that version and locks its other jars (the natives of the
+operating systems the mods' CI does not run on, for one), each at the sha256 of the bytes the
+upstream served then and checked against the `.sha1` published beside it. Javadoc, sources and
+test jars are left out (`skip_files`). A version the list already holds whole is not asked about
+again; `update-list --relist` asks again. These lines are the one place where the list pins what
+an upstream served instead of what a mod recorded: review them in the diff like any other new hash.
 
 ## What is NOT mirrored
 
@@ -75,27 +130,24 @@ on a machine that does not have them cached.
 
 ## Using it from Gradle
 
-Declare the mirror before the upstreams, restricted to the mirrored groups, and keep the upstream
-repositories after it. Gradle uses the first repository that has a module and moves on when this
-one answers 404, so anything not mirrored still resolves from its upstream:
+Declare the mirror before the upstreams and keep the upstream repositories after it. Gradle uses
+the first repository that has a module and moves on when this one answers 404, so anything not
+mirrored still resolves from its upstream. Keep it away from the groups it never holds (Mojang's,
+Minecraft's and the ones Loom generates locally), so that it is not even asked for them:
 
 ```kotlin
-maven("https://the-plum-team.github.io/maven-mirror/") {
+maven("https://maven.quickskin.net/") {
     name = "PlumMavenMirror"
     // Only the files in the verification metadata are mirrored: a module's .module file without
     // the .pom that merely points to it, so Gradle must look for the .module first.
     metadataSources { gradleMetadata(); mavenPom() }
     mavenContent { releasesOnly() }
     content {
-        includeGroupByRegex("net\\.fabricmc(\\..*)?")
-        includeGroupByRegex("dev\\.architectury(\\..*)?")
-        includeGroup("architectury-plugin")
-        includeGroupByRegex("dev\\.kikugie(\\..*)?")
-        includeGroupByRegex("net\\.neoforged(\\..*)?")
-        includeGroupByRegex("net\\.minecraftforge(\\..*)?")
-        includeGroup("cpw.mods")
-        includeGroupByRegex("software\\.bernie(\\..*)?")
-        includeGroup("com.geckolib")
+        excludeGroupByRegex("com\\.mojang(\\..*)?")
+        excludeGroupByRegex("net\\.minecraft(\\..*)?")
+        excludeGroupByRegex("de\\.oceanlabs\\.mcp(\\..*)?")
+        excludeGroup("loom")
+        excludeGroupByRegex("remapped\\..+")
     }
 }
 ```
@@ -113,7 +165,7 @@ builds without the mirror but failed with it on `neoforge-26.3.0.3-beta-sources.
 Block Pops' metadata records that NeoForge version and it does not record the sources jar.
 
 To close most of that gap, `update-list` also locks every file that a locked `.module` declares,
-except javadoc jars. It reads each `.module` from Pages or its upstream, checks it against its
+except javadoc jars. It reads each `.module` from the mirror or its upstream, checks it against its
 locked sha256, and trusts the sha256 the `.module` gives for each of its files. Versions published
 with only a `.pom` cannot be completed this way: for example
 `net.fabricmc:fabric-loader:0.19.3:sources` still fails with the mirror. Under strict verification
@@ -141,19 +193,23 @@ NeoForge 1.21.4 and NeoForge 26.3 lanes build with `maven.fabricmc.net`, `meta.f
 `maven.architectury.dev` and `maven.kikugie.dev` unreachable, and its Forge 1.20.1 lane builds with
 only the Fabric and Kikugie hosts unreachable.
 
-If Pages itself is unreachable Gradle fails instead of falling back (it only falls back on 404), so
-the mirror moves the single point of failure for these groups from the modding hosts to GitHub
-Pages. A build with a warm Gradle cache and `--offline` needs neither.
+If the mirror itself is unreachable Gradle fails instead of falling back (it only falls back on
+404), so the mirror moves the single point of failure for what it holds from each upstream to
+Cloudflare. A build that must do without it passes `-Pplum.mavenMirror=false` in the mods that
+define that switch; a build with a warm Gradle cache and `--offline` needs neither.
 
 ## Size
 
-GitHub Pages allows a 1 GB site and 100 MB per file. `fill` refuses any file over 100 MB, fails
-above 1 GB and warns above 80%; the workflow summary reports the size on every run. Above 90%
-(966.4 MB) the publish workflow's `size` job fails after the deploy, so the site still goes out and
-the failed run is the alert (`python3 scripts/mirror.py check-size --bytes N` runs the same check). Most of the
-size is NeoForge and Forge installer, universal, userdev and sources jars, roughly 25 MB per loader
-version; when the list grows near the limit, versions the mods no longer build should be dropped
-from their verification metadata first.
+Cloudflare R2 stores 10 GB without charge and bills what is above it; nothing stops there. The
+publisher takes a file in one request, at most 100 MB, and `fill` refuses a larger one. `fill`
+warns above 80% of the 10 GB; the workflow summary reports the size on every run. Above 90% the
+publish workflow's `size` job fails after the publish, so the site still goes out and the failed
+run is the alert (`python3 scripts/mirror.py check-size --bytes N` runs the same check). Reads are
+billed per request above R2's free monthly allowance, not per byte. Most of the size is NeoForge
+and Forge installer, universal, userdev and sources jars, roughly 25 MB per loader version; when
+the list grows near the allowance, versions the mods no longer build should be dropped from their
+verification metadata first. Nothing is ever deleted from the bucket by a run: a file that leaves
+the list stays published but is no longer named by the manifest or by `maven-metadata.xml`.
 
 ## Maintaining the list
 
@@ -171,7 +227,7 @@ that must cite the upstream's license.
 ### Seeding while an upstream is down
 
 `fill` can reuse files from a Gradle cache (`--seed-gradle ~/.gradle/caches/modules-2/files-2.1`)
-or a Maven-layout directory (`--seed-maven DIR`). To fill Pages while an upstream is unreachable,
+or a Maven-layout directory (`--seed-maven DIR`). To fill the mirror while an upstream is unreachable,
 build a store locally, publish it as `seed-*.tar` assets of a release in this repository, and run
 `Publish mirror` with `seed_release` set to that tag. Seeds are untrusted: each file is checked
 against the list exactly like a download.

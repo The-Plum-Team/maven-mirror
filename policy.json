@@ -1,12 +1,15 @@
 {
-  "comment": "Reviewed redistribution policy. A component is mirrored only when an 'include' rule matches its group and module name and no 'exclude' rule does. Anything that matches no rule is not mirrored. Changing this file is a license decision: cite the upstream's own license file in 'evidence'.",
+  "comment": "Reviewed redistribution policy. A component is mirrored only when an 'include' rule matches its group and module name, or 'by_pom' accepts the license its own POM declares, and no 'exclude' rule matches. Anything else is not mirrored. Changing this file is a license decision: cite the upstream's own license file in 'evidence'.",
   "upstreams": {
     "fabric": "https://maven.fabricmc.net/",
     "architectury": "https://maven.architectury.dev/",
     "kikugie": "https://maven.kikugie.dev/releases/",
     "neoforged": "https://maven.neoforged.net/releases/",
     "forge": "https://maven.minecraftforge.net/",
-    "geckolib": "https://dl.cloudsmith.io/public/geckolib3/geckolib/maven/"
+    "geckolib": "https://dl.cloudsmith.io/public/geckolib3/geckolib/maven/",
+    "google-central": "https://maven-central.storage-download.googleapis.com/maven2/",
+    "central": "https://repo.maven.apache.org/maven2/",
+    "gradle-plugins": "https://plugins.gradle.org/m2/"
   },
   "exclude": [
     {
@@ -303,6 +306,105 @@
       "upstreams": [
         "geckolib"
       ]
+    },
+    {
+      "group": "^org[.]gradle[.]toolchains$",
+      "module": "^foojay-resolver$",
+      "license": "Apache-2.0",
+      "evidence": "https://github.com/gradle/foojay-toolchains/blob/main/LICENSE",
+      "upstreams": [
+        "gradle-plugins"
+      ]
+    },
+    {
+      "group": "^gradle[.]plugin[.]org[.]jetbrains[.]gradle[.]plugin[.]idea-ext$",
+      "module": "^gradle-idea-ext$",
+      "license": "Apache-2.0",
+      "evidence": "https://github.com/JetBrains/gradle-idea-ext-plugin/blob/master/LICENSE.txt",
+      "upstreams": [
+        "gradle-plugins"
+      ]
+    },
+    {
+      "group": "^org[.]antlr$",
+      "module": "^ST4$",
+      "license": "BSD-3-Clause",
+      "evidence": "https://github.com/antlr/stringtemplate4/blob/master/LICENSE.txt",
+      "upstreams": [
+        "google-central",
+        "central"
+      ]
+    },
+    {
+      "group": "^trove$",
+      "module": "^trove$",
+      "license": "LGPL-2.1",
+      "evidence": "https://bitbucket.org/trove4j/trove/src/master/LICENSE.txt",
+      "upstreams": [
+        "forge"
+      ]
     }
-  ]
+  ],
+  "by_pom": {
+    "comment": "Components no rule above names, as Maven Central and the Gradle Plugin Portal serve them. One is mirrored when its own POM, or the nearest parent POM that declares any, names at least one license that an entry of 'licenses' recognises; a POM that lists several offers a choice among them (https://maven.apache.org/pom.html#Licenses). Each pattern is a regular expression searched in the lower-cased license name and URL. A component that is build metadata only (nothing but .pom files, such as a parent POM) is mirrored whether or not it names a license. Everything else stays on its upstream and is listed in excluded.txt. Gradle takes every file of a version from the repository that served its POM, so a version published without Gradle Module Metadata is completed with the other jars its upstream lists for it (the natives of the other operating systems, for one), pinned at the sha256 of the bytes served when the list was generated; 'skip_files' names the kinds no build asks for.",
+    "upstreams": [
+      "google-central",
+      "central",
+      "gradle-plugins"
+    ],
+    "licenses": {
+      "Apache-2.0": [
+        "\\bapache\\b.*\\b2(\\.0)?\\b",
+        "apache\\.org/licenses/license-2"
+      ],
+      "MIT": [
+        "\\bmit\\b",
+        "opensource\\.org/licenses/mit"
+      ],
+      "BSD": [
+        "\\b0?bsd\\b",
+        "eclipse distribution licen[sc]e",
+        "\\bedl\\b"
+      ],
+      "EPL": [
+        "eclipse public licen[sc]e",
+        "\\bepl\\b"
+      ],
+      "LGPL": [
+        "lesser general public",
+        "\\blgpl"
+      ],
+      "MPL-2.0": [
+        "mozilla public licen[sc]e.*\\b2",
+        "\\bmpl[- ]?2"
+      ],
+      "CDDL": [
+        "\\bcddl\\b",
+        "common development and distribution"
+      ],
+      "Unicode": [
+        "\\bunicode\\b"
+      ],
+      "CC0-1.0": [
+        "\\bcc0\\b",
+        "creativecommons\\.org/publicdomain/zero"
+      ],
+      "Public-Domain": [
+        "\\bpublic domain\\b"
+      ],
+      "ISC": [
+        "\\bisc\\b"
+      ],
+      "Bouncy-Castle": [
+        "bouncy castle licen[sc]e"
+      ]
+    },
+    "skip_files": [
+      "-javadoc\\.jar$",
+      "-sources\\.jar$",
+      "-tests?\\.jar$",
+      "-test-sources\\.jar$",
+      "-test-fixtures\\.jar$"
+    ]
+  }
 }

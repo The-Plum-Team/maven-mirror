@@ -1,0 +1,8 @@
+{
+  "name": "plum-maven-upload",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "node --experimental-strip-types --test test/index.test.ts"
+  }
+}
