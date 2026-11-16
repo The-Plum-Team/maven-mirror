@@ -3,3 +3,5 @@ __pycache__/
 /store/
 /seed/
 /seed-download/
+/worker/.wrangler/
+node_modules/

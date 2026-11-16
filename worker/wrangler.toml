@@ -1,0 +1,17 @@
+name = "plum-maven-upload"
+main = "src/index.ts"
+compatibility_date = "2026-06-01"
+workers_dev = false
+routes = [{ pattern = "maven-upload.quickskin.net", custom_domain = true }]
+
+[[r2_buckets]]
+binding = "BUCKET"
+bucket_name = "plum-maven-mirror"
+
+# Who may publish: the Publish workflow of this repository, on main. The ids are GitHub's numeric
+# ids of the repository and of the organisation, which a rename cannot imitate.
+[vars]
+AUDIENCE = "https://maven.quickskin.net"
+REPOSITORY_ID = "1413672863"
+OWNER_ID = "314544921"
+WORKFLOW_REF = "The-Plum-Team/maven-mirror/.github/workflows/publish.yml@refs/heads/main"
