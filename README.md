@@ -77,7 +77,7 @@ there is a change of who can write to the mirror and takes effect only when it i
 | `maven.neoforged.net/releases` | `net.neoforged` NeoForge, FancyModLoader, Bus, CoreMods, AccessTransformers, InstallerTools, JarJar, SRGUtils, MergeTool, AutoRenamingTool; `cpw.mods` | LGPL-2.1, LGPL-3.0, MIT |
 | `maven.minecraftforge.net` | `net.minecraftforge` Forge, FML modules and tooling | LGPL-2.1, MIT |
 | `dl.cloudsmith.io/public/geckolib3` | `software.bernie.geckolib`, `com.geckolib` | MIT |
-| `repo.maven.apache.org/maven2` (read first from Google's copy of it) and `plugins.gradle.org/m2` | every other component the mods record, by the license its own POM declares | Apache-2.0, MIT, BSD, EPL, LGPL, MPL-2.0, CDDL, Unicode, CC0-1.0, public domain, ISC, Bouncy Castle |
+| `repo.maven.apache.org/maven2` (read first from Google's copy of it) and `plugins.gradle.org/m2` | every other component the mods record, by the license its own POM declares | Apache-2.0, MIT, BSD, EPL, LGPL, MPL-2.0, CDDL, Unicode, CC0-1.0, public domain, ISC, Bouncy Castle; JDOM by its own rule |
 
 Each include rule in `policy.json` names its license and links the upstream's license file. Forge
 and NeoForge are mirrored as their projects license and publish them (LGPL-2.1, including their
