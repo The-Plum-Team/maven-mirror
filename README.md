@@ -33,10 +33,12 @@ still name it, and gets nothing new.
    `.sha256` and `.sha512` checksum files, a `maven-metadata.xml` per module, and
    `mirror-manifest.json`. A run also refuses to publish a site that would drop files that are
    published now (for example because the mirror could not be read back).
-5. The `publish` job sends what the mirror lacks to the publisher (below): each file, then its
-   checksum files, then the listings of the modules that changed, and the manifest last, so the
-   manifest never names a file that is not there. A file that is published is never replaced or
-   deleted.
+5. The `publish` job sends what the mirror lacks to the publisher (below): each file and then its
+   checksum files, every jar before any `.pom` or `.module`, then the listings of the modules that
+   changed, and the manifest last. Gradle asks a repository for a version's files only once it has
+   served the version's metadata, so a build that runs during a publish never finds half a version
+   here, and the manifest never names a file that is not there. A file that is published is never
+   replaced or deleted.
 6. After publishing, the workflow downloads a sample of files from each upstream over the mirror's
    URL and checks their sha256 against the list.
 

@@ -53,6 +53,8 @@ HEX64 = re.compile(r"^[0-9a-f]{64}$")
 CHECKSUMS = ("md5", "sha1", "sha256", "sha512")
 HOST_FAILURE_LIMIT = 6  # consecutive network errors before a host is skipped for the rest of a run
 MANIFEST = "mirror-manifest.json"
+# The files that tell Gradle a version is in a repository
+METADATA_SUFFIXES = (".pom", ".module")
 DEFAULT_MIRROR = "https://maven.quickskin.net/"
 # Where the mirror was published until it moved; it stays as it was then, and is still read
 # before any upstream for the files it holds.
@@ -1009,8 +1011,15 @@ def publish_site(site: Path, base: str, endpoint: str, token, jobs: int = 8, all
 
     A file goes first and its checksum files after it, the .sha256 last: a .sha256 that is
     published says the file and its other checksums are too, which is how a run that was cut short
-    is picked up without sending everything again. The listings of the modules that changed follow,
-    and the manifest goes last, so it never names a file that is not there.
+    is picked up without sending everything again.
+
+    Every jar goes before any .pom or .module. Gradle asks a repository for a version's files only
+    once that repository has served the version's metadata, so a build that runs during a publish
+    never finds a version here whose files are still on their way. It matters more than the moment
+    it lasts: the host remembers that a .jar was not there for hours.
+
+    The listings of the modules that changed follow, and the manifest goes last, so it never names
+    a file that is not there.
     """
     manifest = json.loads((site / MANIFEST).read_text(encoding="utf-8"))["files"]
     published = published_files(base)
@@ -1042,8 +1051,12 @@ def publish_site(site: Path, base: str, endpoint: str, token, jobs: int = 8, all
         for algorithm in CHECKSUMS:
             send(f"{path}.{algorithm}", (site / f"{path}.{algorithm}").read_bytes())
 
+    def announces(item: dict) -> bool:
+        return item["path"].endswith(METADATA_SUFFIXES)
+
     with concurrent.futures.ThreadPoolExecutor(max_workers=jobs) as pool:
-        list(pool.map(artifact, todo))
+        list(pool.map(artifact, [item for item in todo if not announces(item)]))
+        list(pool.map(artifact, [item for item in todo if announces(item)]))
         chosen = manifest if all_listings else todo
         list(pool.map(listing, sorted({item["path"].rsplit("/", 2)[0] for item in chosen})))
     for name in ("index.html", MANIFEST):
