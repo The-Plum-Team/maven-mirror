@@ -14,6 +14,10 @@ on:
         description: "Publish the complete components even if some files are still unreachable"
         type: boolean
         default: true
+      all_listings:
+        description: "Send every maven-metadata.xml again, not only those of modules with new files"
+        type: boolean
+        default: false
   push:
     branches: [main]
     paths:
@@ -25,11 +29,14 @@ on:
 permissions: {}
 
 concurrency:
-  group: pages
+  group: publish
   cancel-in-progress: false
 
 env:
-  PAGES_URL: https://the-plum-team.github.io/maven-mirror/
+  MIRROR_URL: https://maven.quickskin.net/
+  PUBLISHER_URL: https://maven-upload.quickskin.net/
+  # Where the mirror was published until it moved. It stays as it was, and is read before any upstream.
+  LEGACY_PAGES_URL: https://the-plum-team.github.io/maven-mirror/
 
 jobs:
   build:
@@ -50,7 +57,7 @@ jobs:
         uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: store
-          key: verified-store-${{ github.run_id }}
+          key: verified-store-${{ github.run_id }}-${{ github.run_attempt }}
           restore-keys: verified-store-
 
       - name: Download seed release
@@ -82,7 +89,7 @@ jobs:
           # `inputs.allow_incomplete != false` would be false there; only a dispatch may opt out.
           ALLOW_INCOMPLETE: ${{ github.event_name != 'workflow_dispatch' || inputs.allow_incomplete }}
         run: |
-          args=(--site site --store store --pages "$PAGES_URL" --summary "$GITHUB_STEP_SUMMARY" --github-output "$GITHUB_OUTPUT")
+          args=(--site site --store store --pages "$MIRROR_URL" --pages "$LEGACY_PAGES_URL" --summary "$GITHUB_STEP_SUMMARY" --github-output "$GITHUB_OUTPUT")
           if [ -d seed ]; then args+=(--seed-maven seed); fi
           if [ "$ALLOW_INCOMPLETE" = "true" ]; then args+=(--allow-incomplete); fi
           python3 -I scripts/mirror.py fill "${args[@]}"
@@ -92,31 +99,45 @@ jobs:
         uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: store
-          key: verified-store-${{ github.run_id }}
+          key: verified-store-${{ github.run_id }}-${{ github.run_attempt }}
 
-      - name: Upload Pages artifact
-        if: ${{ steps.fill.outputs.publishable == 'true' }}
-        uses: actions/upload-pages-artifact@fc324d3547104276b827a68afc52ff2a11cc49c9 # v5.0.0
-        with:
-          path: site
-
-  deploy:
+  publish:
+    # The only job that may write to the mirror. It downloads nothing from an upstream: it builds the
+    # site again from the store the build job verified and saved, checking every file against the
+    # list once more, and sends what the mirror lacks. The publisher (worker/) accepts it because
+    # the job's OpenID Connect token says it is this workflow, on main; no secret is involved.
     needs: build
     if: ${{ needs.build.outputs.publishable == 'true' }}
     runs-on: ubuntu-24.04
-    timeout-minutes: 15
+    timeout-minutes: 60
     permissions:
-      pages: write
+      contents: read
       id-token: write
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
     steps:
-      - id: deployment
-        uses: actions/deploy-pages@368f82528645a54fb793d4d04e342629a3f51346 # v5.0.1
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Restore the store this run verified
+        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: store
+          key: verified-store-${{ github.run_id }}-${{ github.run_attempt }}
+          fail-on-cache-miss: true
+
+      - name: Build the site from the verified store
+        run: python3 -I scripts/mirror.py fill --site site --store store --no-upstream --allow-incomplete --pages "$MIRROR_URL" --summary "$GITHUB_STEP_SUMMARY"
+
+      - name: Publish what the mirror lacks
+        env:
+          ALL_LISTINGS: ${{ github.event_name == 'workflow_dispatch' && inputs.all_listings }}
+        run: |
+          args=(--site site --base "$MIRROR_URL" --endpoint "$PUBLISHER_URL" --summary "$GITHUB_STEP_SUMMARY")
+          if [ "$ALL_LISTINGS" = "true" ]; then args+=(--all-listings); fi
+          python3 -I scripts/mirror.py publish "${args[@]}"
 
   verify:
-    needs: [build, deploy]
+    needs: [build, publish]
     runs-on: ubuntu-24.04
     timeout-minutes: 15
     permissions:
@@ -126,7 +147,7 @@ jobs:
         with:
           persist-credentials: false
       - name: Verify published files over HTTPS
-        run: python3 -I scripts/mirror.py verify-remote --base "$PAGES_URL" --per-upstream 4
+        run: python3 -I scripts/mirror.py verify-remote --base "$MIRROR_URL" --per-upstream 4
       - name: Report completeness
         if: ${{ needs.build.outputs.complete != 'true' }}
         run: |
@@ -134,8 +155,8 @@ jobs:
           exit 1
 
   size:
-    # Runs after the deploy so a large site is still published; the failed run is the alert.
-    needs: [build, deploy]
+    # Runs after the publish so a large site still goes out; the failed run is the alert.
+    needs: [build, publish]
     runs-on: ubuntu-24.04
     timeout-minutes: 5
     permissions:
@@ -144,7 +165,7 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
-      - name: Site stays under 90% of the 1 GB Pages limit
+      - name: Site stays under 90% of the bucket's free allowance
         env:
           SITE_BYTES: ${{ needs.build.outputs.site_bytes }}
         run: python3 -I scripts/mirror.py check-size --bytes "$SITE_BYTES" --annotate
