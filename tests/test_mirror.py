@@ -95,6 +95,29 @@ class ListTest(unittest.TestCase):
         self.assertEqual([e.path for e in entries], ["net/fabricmc/fabric-loader/2.0/fabric-loader-2.0.jar"])
         self.assertIn("net.fabricmc:fabric-loader:1.0", excluded)
 
+    def test_a_file_the_mods_record_differently_is_served_at_the_bytes_they_all_trust(self):
+        policy = mirror.Policy.load()
+
+        def recorded(*hashes):
+            first, also = hashes[0], "".join(f'<also-trust value="{h}"/>' for h in hashes[1:])
+            return (f'<verification-metadata xmlns="{NS}"><components>'
+                    '<component group="net.fabricmc" name="fabric-loader" version="1.0">'
+                    f'<artifact name="fabric-loader-1.0.jar"><sha256 value="{first}" origin="test">{also}</sha256>'
+                    '</artifact></component></components></verification-metadata>').encode()
+
+        old, again, newest = "a" * 64, "b" * 64, "c" * 64
+        entries, excluded, _ = mirror.build_list(
+            policy, [("one", recorded(old, again, newest)), ("two", recorded(again, newest)),
+                     ("three", recorded(newest, again, old))])
+        self.assertEqual([(e.path, e.hashes, e.disputed) for e in entries],
+                         [("net/fabricmc/fabric-loader/1.0/fabric-loader-1.0.jar", (again, newest), True)])
+        self.assertEqual(excluded, {})
+        self.assertTrue(entries[0].line().endswith(" disputed"))
+        # Nothing in common: neither set can be served without breaking the other mod
+        entries, excluded, _ = mirror.build_list(policy, [("one", recorded(old)), ("two", recorded(newest))])
+        self.assertEqual(entries, [])
+        self.assertIn("net.fabricmc:fabric-loader:1.0", excluded)
+
     def test_module_declared_files_are_added_with_their_declared_hashes(self):
         base = "net/neoforged/neoforge/1.0"
         module = json.dumps({"variants": [
@@ -466,6 +489,25 @@ class FillTest(unittest.TestCase):
         for suffix in ("", ".md5", ".sha1", ".sha256", ".sha512"):
             self.assertIn(path + suffix, files)
         self.assertIn("net/fabricmc/fabric-loader/maven-metadata.xml", files)
+
+    def test_a_disputed_file_the_upstream_serves_otherwise_is_left_out_without_stopping_the_run(self):
+        jar = "net/fabricmc/fabric-loader/1.0/fabric-loader-1.0.jar"
+        other = "net/fabricmc/fabric-loader/2.0/fabric-loader-2.0.jar"
+        status, files = self.run_fill({jar: b"only some mods trust this", other: b"good"},
+                                      [f"{sha(b'what they all trust')} fabric Apache-2.0 {jar} disputed",
+                                       f"{sha(b'good')} fabric Apache-2.0 {other}"], allow_incomplete=True)
+        self.assertEqual(status, 0)
+        self.assertNotIn(jar, files)
+        self.assertIn(other, files)
+
+    def test_a_malformed_fifth_field_is_refused(self):
+        with tempfile.TemporaryDirectory() as work:
+            lock = Path(work) / "artifacts.lock"
+            lock.write_text(f"{'a' * 64} fabric MIT net/fabricmc/x/1.0/x-1.0.jar whatever\n")
+            with self.assertRaises(mirror.MirrorError):
+                mirror.read_lock(lock)
+            lock.write_text(f"{'a' * 64} fabric MIT net/fabricmc/x/1.0/x-1.0.jar disputed\n")
+            self.assertTrue(mirror.read_lock(lock)[0].disputed)
 
     def test_incomplete_component_is_withheld(self):
         jar = "net/fabricmc/fabric-loader/1.0/fabric-loader-1.0.jar"

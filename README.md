@@ -123,8 +123,12 @@ an upstream served instead of what a mod recorded: review them in the diff like 
 - **Minecraft-derived decompilation data with no clear license**: NeoForm (`net.neoforged:neoform`,
   no license in its repository) and MCPConfig/MCInjector (`de.oceanlabs.mcp:*`).
 - **Anything whose license could not be confirmed**: currently `com.eliotlash.mclib:mclib`.
-- **Versions the mods disagree about**: when the two mods' verification metadata record different
-  sha256 values for the same file, the whole version stays on its upstream until they agree.
+- **Versions the mods disagree about**: when the mods' verification metadata record sets of sha256
+  for the same file that have nothing in common, the whole version stays on its upstream until
+  they agree. When the sets overlap (an upstream published a jar again and only some mods recorded
+  every copy), the file is listed with the sha256 they all trust and marked `disputed`: it is
+  mirrored when those bytes can be had, and left out, without stopping the run, when its upstream
+  serves a copy only some mods trust.
 
 `excluded.txt` lists every such component seen in the mods' metadata. Those still come from their
 upstreams, so an outage of the NeoForge or Forge Maven can still block NeoForm/MCPConfig downloads
